@@ -477,7 +477,7 @@ int RadioMessagesUsed = 0;
 #define MAX_NORMAL_WAVES	40
 int WaveFinishCallback[MAX_NORMAL_WAVES];
 
-#define MAX_ENEMIES_PER_WAVE	512
+#define MAX_ENEMIES_PER_WAVE	256
 
 // EnemySpawnCache[] format is {int loc, str actor}
 // ENEMY_SPAWN_CACHE_LEN is the limit of how many concurrent waves can be running at once.
@@ -1577,30 +1577,6 @@ function bool MapIsMenu (void)
 	return false;
 }
 
-function void UpdateJailTrackers (void)
-{
-	int inJail = 0;
-	int i, curTrackers;
-
-	// Count how many players are in jail
-	for(i=0; i<=highestPlayerNumber; i++)
-	{
-		inJail += CheckActorInventory(PLAYER_TID_START+i,"JailTracker");
-	}
-
-	for(i=0; i<=highestPlayerNumber; i++)
-	{
-		curTrackers = CheckActorInventory(PLAYER_TID_START+i,"JailTrackerAllPlayers");
-		if(curTrackers<inJail)
-		{
-			GiveActorInventory(PLAYER_TID_START+i,"JailTrackerAllPlayers",inJail-curTrackers);
-		} else if(curTrackers>inJail)
-		{
-			TakeActorInventory(PLAYER_TID_START+i,"JailTrackerAllPlayers",curTrackers-inJail);
-		}
-	}
-}
-
 function bool mapRangeFinished (int first, int last)
 {
 	for(int i=first; i<=last; i++)
@@ -1628,12 +1604,6 @@ function void Setup (void)
 			SetCameraToTexture(PrisonCamStart+3, "CT_4", 90 );
 			SetCameraToTexture(PrisonCamStart+4, "CT_5", 90 );
 			SetCameraToTexture(PrisonCamStart+5, "CT_6", 90 );
-		}
-
-		if(PrisonTeleporterLineId)
-		{
-			SetLineSpecial(PrisonTeleporterLineId, ACS_ExecuteAlways, S_JAIL_LEAVE, 0, PrisonTeleporterThrustAngle );
-			SetJailTeleporter( FALSE );
 		}
 
 		AddAmmoActor(	BULLETS,	"Clip",		10	);
@@ -2665,8 +2635,10 @@ script S_CALLWAVE (int wave)
 	}
 
 	// Wait until all monsters are dead or if the next level cheat is called
-	while(GetLevelInfo(LEVELINFO_TOTAL_MONSTERS)-GetLevelInfo(LEVELINFO_KILLED_MONSTERS) > 0)
-	{	delay(1);	}
+	//while(GetLevelInfo(LEVELINFO_TOTAL_MONSTERS)-GetLevelInfo(LEVELINFO_KILLED_MONSTERS) > 0)
+	//{	delay(1);	}
+
+	delay(4200); //(2 minutes) Time before the next wave starts, disregard above -[Cozi]
 
 	AnnounceWaveDone(wave);
 
@@ -2778,63 +2750,8 @@ script S_ENTER ENTER
 
 	highestPlayerNumber = max( PlayerNumber(), highestPlayerNumber );
 
-	// Weapons
-	/*TakeInventory("DEChainsaw", INT_MAX);
-	TakeInventory("AutoShotgun", INT_MAX);
-	TakeInventory("DESuperShotgun", INT_MAX);
-	TakeInventory("SuperShotgun", INT_MAX);
-	TakeInventory("DEShotgun", INT_MAX);
-	TakeInventory("Shotgun", INT_MAX);
-	TakeInventory("DEChaingun", INT_MAX);
-	TakeInventory("Chaingun", INT_MAX);
-	TakeInventory("HRL", INT_MAX);
-	TakeInventory("LandMineLayer", INT_MAX);
-	TakeInventory("DERLauncher", INT_MAX);
-	TakeInventory("RocketLauncher", INT_MAX);
-	TakeInventory("Railgun", INT_MAX);
-	TakeInventory("StunnerRifle", INT_MAX);
-	TakeInventory("DEPlasmaRifle", INT_MAX);
-	TakeInventory("PlasmaRifle", INT_MAX);
-	TakeInventory("DEBFG9000", INT_MAX);
-	TakeInventory("BFG9000", INT_MAX);
-	TakeInventory("PyroCannon", INT_MAX);
-	TakeInventory("Flamer", INT_MAX);
-	TakeInventory("Devastator", INT_MAX);
-	TakeInventory("Repeater", INT_MAX);
-	TakeInventory("Pistol", INT_MAX);
-	TakeInventory("DEPistol", INT_MAX);
-	TakeInventory("DEFist", INT_MAX);
-	TakeInventory("DEShrinkFist", INT_MAX);
-	TakeInventory("BruiserWeapon", INT_MAX);*/
-	// Trackers (for SBARINFO)
-	TakeInventory("JailTracker", INT_MAX);
-	TakeInventory("JailTrackerAllPlayers", INT_MAX);
 	TakeInventory("HUDCredits", INT_MAX);
 	TakeInventory("ThrustDummy", INT_MAX);
-	// Ammo
-	/*TakeInventory("Clip", INT_MAX);
-	TakeInventory("Cell", INT_MAX);
-	TakeInventory("RocketAmmo", INT_MAX);
-	TakeInventory("Gas", INT_MAX);
-	TakeInventory("Shell", INT_MAX);
-	TakeInventory("Mines", INT_MAX);*/
-	
-	if (PlayersAreLate)
-	{
-		if(PrisonSpot)
-		{
-			Print(s:"You are late to the game!");
-
-			GiveInventory("JailTracker", 1);
-			UpdateJailTrackers();
-
-			While(! Teleport_NoFog(PrisonSpot, true, 0))
-			{	delay(5);	}
-			GiveInventory("CoinItem", 1250);
-			TakeInventory("LifeItem", 9);
-		}
-		else UpdateJailTrackers();
-	}
 
 	UpdateWaveTrackers();
 	UpdateTime();
@@ -2865,12 +2782,7 @@ script S_ENTER ENTER
 	GiveInventory("LifeItem", 1);
 }
 
-script S_LATEPLAYERS OPEN
-{
-  delay(LatePlayersDelay);
-  
-  PlayersAreLate++;
-}
+
 
 // Displays amount of user's coins at top of screen in the intermap
 script S_HUD_COINS (void)
@@ -2893,58 +2805,13 @@ script S_HUD_COINS (void)
 	}
 }
 
-// If player has zero lives, alert him, then send to jail
-// For if a player drops his last life while alive (respawn script handles spawning without a life)
-script S_LIVE_WATCH ENTER
-{
-	while(true)
-	{
-		// If the player has a JailTracker, then the respawn script is handling this, or he's in jail already
-		if ((CheckInventory("LifeItem") == 0) && (CheckInventory("JailTracker") == 0) && (CheckInventory("Health") > 0))
-		{
-			if(PrisonSpot)
-			{
-				Print(s:"Warning: You are out of lives!\n\nYou are about to be teleported to jail");
-
-				delay(35*6);	// Give the player a moment, so he can pick the life back
-						// up if he accidentally dropped it.
-
-				ACS_ExecuteAlways(S_RESPAWN, 0, 0);
-			} else {
-				Print(s:"Warning: You are out of lives!\n\nBut this map doesn't use a Jail, so you're free for now.");
-
-				delay(20*35); // Wait a bit so that this message isn't constant
-			}
-		}
-		delay(5);
-	}
-}
-
 script S_RESPAWN RESPAWN
 {
 	// Make sure our old dead body doesn't still have our tid
 	Thing_ChangeTid(PLAYER_TID_START+PlayerNumber(),0);
 	Thing_ChangeTid(0,PLAYER_TID_START+PlayerNumber());
-
-	TakeInventory("JailTracker", INT_MAX);
 	TakeInventory("ThrustDummy", 1);
-
-	if (CheckInventory("LifeItem") == 0)
-	{
-		if(PrisonSpot)
-		{
-			Print(s:"You are out of lives!");
-
-			GiveInventory("JailTracker", 1);
-			UpdateJailTrackers();
-
-			While(! Teleport_NoFog(PrisonSpot, true, 0))
-			{	delay(5);	}
-		}
-	} else {
-		UpdateJailTrackers();
-	}
-
+	
 	SetActorProperty(0, APROP_Speed, 1.0);
 
 	if(BriefActive)
@@ -2952,96 +2819,6 @@ script S_RESPAWN RESPAWN
 		SetPlayerProperty (1, true, PROP_TOTALLYFROZEN);
 	} else {
 		SetPlayerProperty (0, false, PROP_TOTALLYFROZEN);
-	}
-}
-
-script S_DISCONNECT (int gone) DISCONNECT
-{
-	UpdateJailTrackers();
-}
-
-function void SetJailTeleporter (bool setting)
-{
-	jailTeleporter = setting;
-	if( jailTeleporter )
-	{
-		thing_deactivate(TeleporterOffLight);	// Dynamic Lights
-		thing_activate(TeleporterOnLight);
-		setlinetexture(PrisonTeleporterLineId, SIDE_FRONT, TEXTURE_MIDDLE, TeleporterOnTexture);
-	} else {
-		thing_activate(TeleporterOffLight);
-		thing_deactivate(TeleporterOnLight);
-		setlinetexture(PrisonTeleporterLineId, SIDE_FRONT, TEXTURE_MIDDLE, TeleporterOffTexture);
-	}
-}
-
-script S_JAIL_LEAVE (int angle)
-{
-	if( jailTeleporter )
-	{
-		if( Teleport(PrisonExit, 0, 0) )
-		{
-			SetJailTeleporter( FALSE );
-			TakeInventory("JailTracker", 1);
-			GiveInventory("LifeItem", 1);
-			UpdateJailTrackers();
-		} else {
-			ThrustThing(angle, 30, 0);
-			Print(s:"Teleporter blocked, try again");
-		}
-	} else {
-		ThrustThing(angle, 30, 0);
-		Print(s:"Teleporter is off");
-	}
-}
-
-script S_JAIL_GIVEUP (void)
-{
-	if(CheckInventory("JailTrackerAllPlayers")==PlayerCount())
-	{
-		Exit_Normal(ExitPos);
-	} else {
-		Print(s:"\cGThere are still \cCplayers \cGon the battlefield!");
-		if(PrisonExitThrustAngle==-1)
-		{
-			ACS_ExecuteAlways(S_G_THRUST,0,0);
-		} else {
-			ThrustThing(PrisonExitThrustAngle, 30, 0);
-		}
-	}
-}
-
-script S_JAIL_OPEN (void) // This is the script called if you use a LifeItem
-{
-	// If the player is in jail, he can use his last LifeItem.
-	// (...This is impossible to do without cheats.)
-	if( (CheckInventory("LifeItem") == 1) && (CheckInventory("JailTracker") == 0) )
-	{
-		Print(s:"You can't use your last Life to open the jail teleporter!");
-		SetResultValue( FALSE );
-		Terminate;
-	}
-
-	if( PrisonTeleporterLineId )
-	{
-		if(CheckInventory("JailTrackerAllPlayers") > 0)
-		{
-			if( ! jailTeleporter )
-			{
-				PrintBold(s:"Prison Teleporter Opened");
-				SetJailTeleporter( TRUE );
-				SetResultValue( TRUE );
-			} else {
-				Print(s:"Prison Teleporter already Open");
-				SetResultValue( FALSE );
-			}
-		} else {
-			Print(s:"No players are in jail!");
-			SetResultValue( FALSE );
-		}
-	} else {
-		Print(s:"Not usable here!\n\nThis map does not have a jail teleporter to open.");
-		SetResultValue( FALSE );
 	}
 }
 
@@ -3405,132 +3182,11 @@ script S_STR52CODEGET (void)	// Script 927
 
 // HUD Stuff
 
-script S_HUD OPEN clientside
-{
-	if( MapIsMenu() )
-	{	Terminate;	}
-
-	// Launch a copy of the timer script clientside
-	ACS_Execute( S_TIMER, 0, 0 );
-
-	SetHudSize(640,480,1);
-
-	int aspect, adjWidth, left, right;
-	int showedPar	= 0;
-
-	while(true)
-	{
-		// If set, turn off hud, and wait for the value to be toggled again
-		if(getcvar("sthd_hud_disable"))
-		{
-			ClearHud();
-
-			while(getcvar("sthd_hud_disable"))
-			{	delay(1);	}
-		}
-		// Code to disable HUD when regular HUD is gone
-/*		if(getcvar("screenblocks")==12)
-		{
-			ClearHud();
-
-			while(getcvar("screenblocks")==12)
-			{	delay(1);	}
-		}
-*/
-		aspect = getaspectratio();
-
-		adjWidth = aspect * 480;
-
-		left = fround((640.0-adjWidth)/2);
-		right = fround((adjWidth+640.0)/2);
-
-		SetFont("HUDLEFT");
-		HudMessageBold(s:"A"; HUDMSG_PLAIN, HUDLeftHID, CR_UNTRANSLATED,
-			left+0.1, 0.1,
-			0.0 );
-
-		SetFont("HUDRIGHT");
-		HudMessageBold(s:"A"; HUDMSG_PLAIN, HUDRightHID, CR_UNTRANSLATED,
-			right+0.2, 0.1,
-			0.0 );
-
-		SetFont("BIGFONT");
-
-		HudMessageBold (d:GetLevelInfo(LEVELINFO_LEVELNUM); HUDMSG_PLAIN, HUDLevelHID, CR_RED,
-			left+83.0, 15.0,
-			0.0 );
-
-		// Show Par Time
-		if(parTimeMode != 0)
-		{
-			// Time
-			HudMessageBold (d:parTimeMinutes,s:":",s:parTimeSecondsSpace,d:parTimeSeconds;
-				HUDMSG_PLAIN, HUDParTimeHID, CR_DARKGRAY,
-				right-38.0, 80.0,
-				0.0 );
-
-			// Label
-			if(parTimeMode==1)
-			{
-				HudMessageBold (s:"Par Time";
-					HUDMSG_PLAIN, HUDParTimeLabelHID, CR_DARKGRAY,
-					right-70.0+0.2, 80.0,
-					0.0 );
-			}
-			else if (parTimeMode==2)
-			{
-				HudMessageBold (s:"Best Time";
-					HUDMSG_PLAIN, HUDParTimeLabelHID, CR_DARKGRAY,
-					right-70.0+0.2, 80.0,
-					0.0 );
-			}
-		} else {
-			HudMessageBold(s:""; HUDMSG_PLAIN, HUDParTimeHID, CR_UNTRANSLATED, 0.0, 0.0, 0.5 );
-			HudMessageBold(s:""; HUDMSG_PLAIN, HUDParTimeLabelHID, CR_UNTRANSLATED, 0.0, 0.0, 0.5 );
-		}
-		showedPar = parTimeMode;
-
-		do
-		{
-			// Wave
-			HudMessageBold (d:curWave; HUDMSG_PLAIN, HUDWaveHID, CR_RED,
-				left+192.0, 15.0,
-				0.0 );
-
-			// Body count
-			HudMessageBold(d:GetLevelInfo(LEVELINFO_KILLED_MONSTERS); HUDMSG_PLAIN, HUDBodyCountHID, CR_RED,
-				right-38.0, 39.0,
-				0.0 );
-
-			// Monsters left
-			HudMessageBold (d:GetLevelInfo(LEVELINFO_TOTAL_MONSTERS)-GetLevelInfo(LEVELINFO_KILLED_MONSTERS);
-				HUDMSG_PLAIN, HUDMonstersHID, CR_RED,
-				left+180.0, 39.0,
-				0.0 );
-
-			// Time Spent
-			HudMessageBold (d:levelMinutes,s:":",s:levelSecondsSpace,d:levelSeconds;
-				HUDMSG_PLAIN, HUDTimeHID, CR_RED,
-				right-38.0, 15.0,
-				0.0 );
-
-			delay(1);
-		}
-		while( (aspect == getaspectratio()) && (showedPar == parTimeMode) && (!getcvar("sthd_hud_disable")) /* && (getcvar("screenblocks")!=12) */ );
-	}
-}
-
 function void clearHud (void)
 {
-	HudMessageBold(s:""; HUDMSG_PLAIN, HUDLeftHID, CR_UNTRANSLATED, 0.0, 0.0, 0.5 );
-	HudMessageBold(s:""; HUDMSG_PLAIN, HUDRightHID, CR_UNTRANSLATED, 0.0, 0.0, 0.5 );
 	HudMessageBold(s:""; HUDMSG_PLAIN, HUDLevelHID, CR_UNTRANSLATED, 0.0, 0.0, 0.5 );
 	HudMessageBold(s:""; HUDMSG_PLAIN, HUDWaveHID, CR_UNTRANSLATED, 0.0, 0.0, 0.5 );
-	HudMessageBold(s:""; HUDMSG_PLAIN, HUDBodyCountHID, CR_UNTRANSLATED, 0.0, 0.0, 0.5 );
-	HudMessageBold(s:""; HUDMSG_PLAIN, HUDMonstersHID, CR_UNTRANSLATED, 0.0, 0.0, 0.5 );
 	HudMessageBold(s:""; HUDMSG_PLAIN, HUDTimeHID, CR_UNTRANSLATED, 0.0, 0.0, 0.5 );
-	HudMessageBold(s:""; HUDMSG_PLAIN, HUDParTimeHID, CR_UNTRANSLATED, 0.0, 0.0, 0.5 );
-	HudMessageBold(s:""; HUDMSG_PLAIN, HUDParTimeLabelHID, CR_UNTRANSLATED, 0.0, 0.0, 0.5 );
 }
 
 script S_TIMER open
