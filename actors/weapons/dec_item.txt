@@ -21,13 +21,13 @@ actor MarineItem : CustomInventory 25003
         TNT1 A 1 A_SpawnItem("TeleportFog", 64, 16, 0, 1)
         TNT1 A 0 A_Jump(128, 4)
         TNT1 A 0 A_Jump(128, 2)
-        TNT1 A 0 A_SpawnItem("STMarineShotgun", 64, 16, 0, 1)
-        TNT1 A 0 A_SpawnItem("STMarineChaingun", 64, 16, 0, 1)
+        TNT1 A 0 A_SpawnItem("Enforcer", 64, 16, 0, 1)
+        TNT1 A 0 A_SpawnItem("Rifleman", 64, 16, 0, 1)
         TNT1 A 0 A_Jump(128, 2)
-        TNT1 A 0 A_SpawnItem("STMarineSSG", 64, 16, 0, 1)
+        TNT1 A 0 A_SpawnItem("Rifleman", 64, 16, 0, 1)
         TNT1 A 0 A_Jump(128, 2)
-        TNT1 A 0 A_SpawnItem("STMarineRocket", 64, 16, 0, 1)
-        TNT1 A 0 A_SpawnItem("STMarinePlasma", 64, 16, 0, 1)
+        TNT1 A 0 A_SpawnItem("Rocketeer", 64, 16, 0, 1)
+        TNT1 A 0 A_SpawnItem("Rocketeer", 64, 16, 0, 1)
   	stop
   }
 }
@@ -153,7 +153,7 @@ actor Sentry 12856
         damagefactor "overmindfactor", 10
         radius 16
 	height 16
-	health 300
+	health 3000
         maxstepheight 512
         maxdropoffheight 512
 	-solid
@@ -193,8 +193,8 @@ actor SentryPlasma
 {
 	radius 1
 	height 2
-	speed 20
-        damage 3
+	speed 25
+        damage 6
         scale 0.3
 	damagetype "bossfactor"
 	+DONTBLAST
@@ -232,7 +232,7 @@ actor SentryItem : CustomInventory 25004
   use:
   		TNT1 A 1 A_PlaySound("DSSTPLAC", CHAN_AUTO, 0.7)
 		TNT1 A 1 A_SpawnItem("ItemFog", 64, 16, 0, 1)
-                TNT1 A 1 a_spawnitem("Sentry", 64, 0, 0, 1)
+                TNT1 A 1 a_spawnitem("HerpBot", 64, 0, 0, 1)
   		stop
   }
 }
@@ -257,7 +257,7 @@ actor BarrelItem : CustomInventory 25005
     	stop
   Use:
         TNT1 A 1 A_SpawnItem("ItemFog", 64, 16, 0, 1)
-        TNT1 A 0 A_SpawnItem("ExplosiveBarrelTimer", 64, 16, 0, 1)
+        TNT1 A 0 A_SpawnItem("HDBarrel", 64, 16, 0, 1)
   	stop
   }
 }
@@ -433,15 +433,22 @@ actor ThrustDummy : Inventory
 actor SuperShield : BasicArmorPickup 10716
 {
 //$Category Stronghold_Items
-  armor.savepercent 100.0
-  armor.saveamount 300
-  inventory.icon "ARMXA0"
-  inventory.pickupmessage "Picked up the super shield!"
-  states
+   inventory.pickupmessage "Picked up a deployable Shield Core."
+  inventory.maxamount 3
+  inventory.icon armxa0
+  Tag "Deployable Shield Core"
+  +INVENTORY.INVBAR
+  scale 0.75
+   states
   {
   Spawn:
-    ARMX AB 3 Bright
-    loop
+   		SENP A -1 BRIGHT
+    	stop
+  use:
+  		TNT1 A 1 A_PlaySound("DSSTPLAC", CHAN_AUTO, 0.7)
+		TNT1 A 1 A_SpawnItem("ItemFog", 64, 16, 0, 1)
+                TNT1 A 1 a_spawnitem("shieldcore", 64, 0, 0, 1)
+  		stop
   }
 }
 
@@ -469,7 +476,7 @@ actor PSuperMedKit : HealthPickup 12791
 actor PMedKit : HealthPickup 12792
 {
 //$Category Stronghold_Items
-  health 25
+  health 30
   inventory.maxamount 10
   inventory.icon "PMH1A0"
   inventory.pickupmessage "Picked up a portable medkit."
@@ -500,7 +507,7 @@ actor TimeFreezerItem : PowerupGiver 12793
  inventory.usesound "pickups/slowmo"
  powerup.color "00 33 FF" 0.10
  powerup.type "TimeFreezer"
- powerup.duration 1050
+ powerup.duration 1175
  Tag "Time Freeze"
  +INVENTORY.FANCYPICKUPSOUND
  +INVENTORY.INVBAR
@@ -523,7 +530,7 @@ actor TimeFreezerPickup : PowerupGiver 24027
  inventory.usesound "pickups/slowmo"
  powerup.color "00 33 FF" 0.10
  powerup.type "TimeFreezer"
- powerup.duration 1050
+ powerup.duration 1175
  +INVENTORY.FANCYPICKUPSOUND
  +INVENTORY.AUTOACTIVATE
  states
@@ -554,7 +561,7 @@ actor QuadDamageItem : PowerupGiver 12794
  inventory.usesound "pickups/slowmo"
  inventory.icon "DAMIA0"
  powerup.type QuadDamage
- powerup.duration 1050
+ powerup.duration 1850
  Tag "Quad Damage"
  +INVENTORY.FANCYPICKUPSOUND
    states
@@ -575,7 +582,7 @@ actor QuadDamagePowerup : PowerupGiver 24028
  inventory.usesound "pickups/slowmo"
  inventory.icon "DOOMA0"
  powerup.type QuadDamage
- powerup.duration 1050
+ powerup.duration 1850
  +INVENTORY.FANCYPICKUPSOUND
  +INVENTORY.AUTOACTIVATE
    states
@@ -683,7 +690,7 @@ ACTOR MaxHealthBonus2 : UpgradeStamina 12797
 //$Category Stronghold_Items
 Radius 20
 Height 16
-Inventory.Pickupmessage "Picked up a max health bonus."
+Inventory.Pickupmessage "Picked up a max health bonus. Not sure why you'd want this for Hideous Destructor."
 Inventory.Amount 5
 Inventory.MaxAmount 300
 +COUNTITEM
@@ -903,29 +910,29 @@ actor RandomWeaponItem : CustomInventory 25023
         TNT1 A 0 A_Jump(64, 5)
         TNT1 A 0 A_Jump(64, 3)
         TNT1 A 0 A_Jump(64, 1)
-	TNT1 A 0 A_GiveInventory("DEBFG9000", 4)
+	TNT1 A 0 A_GiveInventory("BFG9k", 4)
   	stop
-	TNT1 A 0 A_GiveInventory("Pyrocannon", 4)
+	TNT1 A 0 A_GiveInventory("Liberatorrifle", 4)
   	stop
-	TNT1 A 0 A_GiveInventory("Devastator", 4)
+	TNT1 A 0 A_GiveInventory("BFG9K", 4)
   	stop
-	TNT1 A 0 A_GiveInventory("Repeater", 4)
+	TNT1 A 0 A_GiveInventory("Vulcanette", 4)
   	stop
-        TNT1 A 0 A_GiveInventory("Flamer", 4)
+        TNT1 A 0 A_GiveInventory("HDSMG", 4)
   	stop
-	TNT1 A 0 A_GiveInventory("Railgun", 4)
+	TNT1 A 0 A_GiveInventory("Brontornis", 4)
   	stop
-	TNT1 A 0 A_GiveInventory("StunnerRifle", 4)
+	TNT1 A 0 A_GiveInventory("ZM66AssaultRifle", 4)
   	stop
-	TNT1 A 0 A_GiveInventory("DEPlasmaRifle", 4)
+	TNT1 A 0 A_GiveInventory("Thunderbuster", 4)
   	stop
-        TNT1 A 0 A_GiveInventory("DERLauncher", 4)
+        TNT1 A 0 A_GiveInventory("hdrl", 4)
   	stop
-	TNT1 A 0 A_GiveInventory("HRL", 4)
+	TNT1 A 0 A_GiveInventory("HDRL", 4)
   	stop
-	TNT1 A 0 A_GiveInventory("LandMineLayer", 4)
+	TNT1 A 0 A_GiveInventory("hdfraggrenadeammo", 4)
   	stop
-	TNT1 A 0 A_GiveInventory("Autoshotgun", 4)
+	TNT1 A 0 A_GiveInventory("Hunter", 4)
   	stop
   }
 }
@@ -1170,8 +1177,8 @@ ACTOR AutoDroneBall
 {
    Radius 8
    Height 8
-   Speed 20
-   Damage 48
+   Speed 30
+   Damage 50
    PROJECTILE
    RENDERSTYLE ADD
    ALPHA 0.90
@@ -1482,14 +1489,14 @@ actor PowerOSPDamage : PowerDamage {
   damagefactor "normal", 4
 }
 actor PowerOSPSpeed : PowerSpeed {
-  Speed 2.0
+  Speed 3.0
 }
 
 actor OSPInv : PowerupGiver {
   +INVENTORY.AUTOACTIVATE
   +INVENTORY.ALWAYSPICKUP
   Inventory.MaxAmount 0
-  Powerup.Duration 350
+  Powerup.Duration 400
   Powerup.Type "Invulnerable"
   Powerup.Color GoldMap
   States
@@ -1503,7 +1510,7 @@ actor OSPQuad : PowerupGiver {
   +INVENTORY.AUTOACTIVATE
   +INVENTORY.ALWAYSPICKUP
   Inventory.MaxAmount 0
-  Powerup.Duration 350
+  Powerup.Duration 1500
   Powerup.Type "OSPDamage"
   Powerup.color "FF 00 00",0.35
   States
@@ -1517,7 +1524,7 @@ actor OSPSpeed : PowerupGiver {
   +INVENTORY.AUTOACTIVATE
   +INVENTORY.ALWAYSPICKUP
   Inventory.MaxAmount 0
-  Powerup.Duration 350
+  Powerup.Duration 1500
   Powerup.Type "OSPSpeed"
   States
   {
@@ -1530,7 +1537,7 @@ actor OSPPower : PowerupGiver {
   +INVENTORY.AUTOACTIVATE
   +INVENTORY.ALWAYSPICKUP
   Inventory.MaxAmount 0
-  Powerup.Duration 350
+  Powerup.Duration 1500
   Powerup.Type "WeaponLevel2"
   States
   {
